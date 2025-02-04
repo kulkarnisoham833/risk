@@ -114,16 +114,28 @@ def attack(sourcePlayer, b):
         raise ValueError()
       break
     except:
-      print("Invalid input. Enter the rght number of armies.")
+      print("Invalid input. Enter the right number of armies.")
   b[r][c][sourcePlayer] -= armiesMoving
   b[rA][cA][sourcePlayer] += armiesMoving
   print(f"Player {sourcePlayer + 1} is invading player {int(not sourcePlayer) + 1} with {armiesMoving} troops at row {rA} col {rB}!")
   printBoard(b) #TODO: get it to bold the cell in question
   
   #Run the attack
-  red = diceRoll(armiesMoving) #An array
+  red = sorted(diceRoll(armiesMoving)) #An array of randints 1 to 6
   defenders = b[rA][cA][not sourcePlayer]
-  white = diceRoll(max(defenders, 2))
+  white = sorted(diceRoll(max(defenders, 2)))
+  while min(len(white),len(red)) > 0:
+    if white[i] >= red[i]: # red loses
+      red.pop(i)
+      stat = input(f"Player {sourcePlayer} loses. There are now {len(red)} attackers and {len(white)} defenders. Keep attacking (Y/N)? ")
+      if stat == "N": break
+    else:
+      white.pop(i)
+      stat = input(f"Player {not sourcePlayer} loses. There are now {len(red)} attackers and {len(white)} defenders. Keep attacking (Y/N)? ")
+      if stat == "N": break
+  if len(white) <= 0:
+    
+
   
 
 
