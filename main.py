@@ -15,7 +15,7 @@ import random
 def diceRoll(n):
   ret = []
   for i in range(n):
-    ret.append(random.randint(1,4))
+    ret.append(random.randint(1,6))
   return ret
 
 def initBoard(w = 5, h = 5):
@@ -45,16 +45,9 @@ def placeArmyPrompt(armies, playerNum, b):
   while armies > 0:
     printBoard(b)
     try:
-      tmp = int(input(f"You currently have {armies} arm{'y' if armies == 1 else 'ies'} remaining. How many will you place? "))
-      if tmp <= 0 or tmp > armies:
+      a = int(input(f"You currently have {armies} arm{'y' if armies == 1 else 'ies'} remaining. How many will you place? "))
+      if a <= 0 or a > armies:
         raise ValueError("Too many or too few armies requested.")
-      a = tmp
-      armies -= a
-    except:
-      print("Invalid input.")
-      continue
-
-    try:
       r = int(input(f"Enter row number (0 to {len(b) - 1}): "))
       c = int(input(f"Enter col number (0 to {len(b[0]) - 1}): "))
       if b[r][c][int(not playerNum)] > 0:
@@ -62,18 +55,77 @@ def placeArmyPrompt(armies, playerNum, b):
       # make sure inputs are valid
       b[r]
       b[0][c]
+      armies -= a
     except:
-      print("Invalid input / You can only place armies in empty territories.")
+      print("Invalid input / You cannot place armies in opponent territories.")
       continue
     
     placeArmies(a, r, c, playerNum, b) # Inputs are valid
     printBoard(b)
 
 def placeArmies(armies, row, col, playerNum, b):
-  
   b[row][col][playerNum] += armies
 
+def countTerritories(playerNum, b):
+  c = 0
+  for i in range(len(b)):
+    for j in range(len(b[0])):
+      if b[i][j][playerNum] > 0: #Acc to PlaceArmyPrompt, b[i][j][not playerNum] shold be zero
+        c += 1
+  return c
   
+def attack(sourcePlayer, b):
+  printBoard(b)
+  while True:
+    try:
+      print("Where will you attack from?")
+      r = int(input(f"Enter row number (0 to {len(b) - 1}): "))
+      c = int(input(f"Enter col number (0 to {len(b[0]) - 1}): "))
+      if b[r][c][not sourcePlayer] > 0 or b[r][c][sourcePlayer] <= 1:
+        raise ValueError()
+      # make sure inputs are valid
+      b[r]
+      b[0][c]
+      break
+    except:
+      print("Invalid input. You cannot attack from opponent territories or territories with less than or equal to one army.")
+      continue
+  while True:
+    try:
+      print("What will you attack? It is at most one unit away from your source attack in either or both directions.")
+      rA = int(input(f"Enter row number (0 to {len(b) - 1}): "))
+      cA = int(input(f"Enter col number (0 to {len(b[0]) - 1}): "))
+      
+      if b[rA][cA][sourcePlayer] > 0 or not(abs(rA - r) <= 1 and abs(cA - c) <= 1):
+        raise ValueError()
+      # make sure inputs are valid
+      b[rA]
+      b[0][cA]
+      break
+    except:
+      print("Invalid input. You can't attack yourself.")
+      continue
+    
+  while True: # How many armies will you take
+    try:
+      upto = min(b[r][c][sourcePlayer] - 1, 3)
+      armiesMoving = int(input(f"You may take up to {upto} armies. How many will you take? "))
+      if armiesMoving > upto:
+        raise ValueError()
+      break
+    except:
+      print("Invalid input. Enter the rght number of armies.")
+  b[r][c][sourcePlayer] -= armiesMoving
+  b[rA][cA][sourcePlayer] += armiesMoving
+  print(f"Player {sourcePlayer + 1} is invading player {int(not sourcePlayer) + 1} with {armiesMoving} troops at row {rA} col {rB}!")
+  printBoard(b) #TODO: get it to bold the cell in question
+  
+  #Run the attack
+  red = diceRoll(armiesMoving) #An array
+  defenders = b[rA][cA][not sourcePlayer]
+  white = diceRoll(max(defenders, 2))
+  
+
 
 Board = initBoard()
 
@@ -84,11 +136,24 @@ while tmp[0] == tmp[1]:
   tmp = diceRoll(2)
 currPlayer = 0 if tmp[0] > tmp[1] else 1 # False is the first player, True is the second player
 
-tmp = 40
+tmp = 1
 while tmp > 0: # Place all the troops
   placeArmyPrompt(1, currPlayer, Board)
   currPlayer = not currPlayer
   placeArmyPrompt(1, currPlayer, Board)
   tmp -= 1
+  currPlayer = not currPlayer
+
+gameWin = False
+# Turns
+while not gameWin:
+  # for every 3 territories you control, you gain one troop
+  # TODO: Continent support. Also secret mission support
+  placeArmyPrompt(max(countTerritories(currPlayer, Board) // 3, 3), currPlayer, Board)
+  attack(currPlayer, Board)
+  currPlayer = not currPlayer
+
+  
+
 
 
