@@ -40,6 +40,7 @@ def printBoard(b):
 def placeArmyPrompt(armies, playerNum, b):
   # Show the board with coords
   # Tell how many armies they can place. Ask for how many and where to place with a confirmation step until they place all their armies
+  print(f"You are player {playerNum+1}.")
   print(f"You may place {armies} arm{'y' if armies == 1 else 'ies'} on this turn.")
   while armies > 0:
     printBoard(b)
@@ -56,13 +57,17 @@ def placeArmyPrompt(armies, playerNum, b):
     try:
       r = int(input(f"Enter row number (0 to {len(b) - 1}): "))
       c = int(input(f"Enter col number (0 to {len(b[0]) - 1}): "))
+      if b[r][c][int(not playerNum)] > 0:
+        raise ValueError()
+      # make sure inputs are valid
       b[r]
       b[0][c]
     except:
-      print("Invalid input.")
+      print("Invalid input / You can only place armies in empty territories.")
       continue
     
     placeArmies(a, r, c, playerNum, b) # Inputs are valid
+    printBoard(b)
 
 def placeArmies(armies, row, col, playerNum, b):
   
@@ -77,9 +82,13 @@ currPlayer = -1
 tmp = diceRoll(2)
 while tmp[0] == tmp[1]:
   tmp = diceRoll(2)
-currPlayer = 0 if tmp[0] > tmp[1] else 1
+currPlayer = 0 if tmp[0] > tmp[1] else 1 # False is the first player, True is the second player
 
-placeArmyPrompt(1, currPlayer, Board)
-printBoard(Board)
+tmp = 40
+while tmp > 0: # Place all the troops
+  placeArmyPrompt(1, currPlayer, Board)
+  currPlayer = not currPlayer
+  placeArmyPrompt(1, currPlayer, Board)
+  tmp -= 1
 
 
