@@ -1,5 +1,6 @@
 
 import random
+import sys
 
 # RISK
 
@@ -45,7 +46,8 @@ def placeArmyPrompt(armies, playerNum, b):
   while armies > 0:
     printBoard(b)
     try:
-      a = int(input(f"You currently have {armies} arm{'y' if armies == 1 else 'ies'} remaining. How many will you place? "))
+      a = int(input(f"{playerNum}: You currently have {armies} arm{'y' if armies == 1 else 'ies'} remaining. How many will you place? "))
+
       if a <= 0 or a > armies:
         raise ValueError("Too many or too few armies requested.")
       r = int(input(f"Enter row number (0 to {len(b) - 1}): "))
@@ -57,6 +59,7 @@ def placeArmyPrompt(armies, playerNum, b):
       b[0][c]
       armies -= a
     except:
+      if a == "q": sys.exit()
       print("Invalid input / You cannot place armies in opponent territories.")
       continue
     
@@ -73,7 +76,13 @@ def countTerritories(playerNum, b):
       if b[i][j][playerNum] > 0: #Acc to PlaceArmyPrompt, b[i][j][not playerNum] shold be zero
         c += 1
   return c
-  
+
+# def canAttack(sourcePlayer, b):
+#   for i in range(len(b)):
+#     for j in range(len(b[0])):
+#       if b[i][j][sourcePlayer] > 1:
+#         return True
+#   return False
 def attack(sourcePlayer, b):
   printBoard(b)
   while True:
@@ -117,26 +126,53 @@ def attack(sourcePlayer, b):
       print("Invalid input. Enter the right number of armies.")
   b[r][c][sourcePlayer] -= armiesMoving
   b[rA][cA][sourcePlayer] += armiesMoving
-  print(f"Player {sourcePlayer + 1} is invading player {int(not sourcePlayer) + 1} with {armiesMoving} troops at row {rA} col {rB}!")
+  print(f"Player {sourcePlayer + 1} is invading player {int(not sourcePlayer) + 1} with {armiesMoving} troops at row {rA} col {cA}!")
   printBoard(b) #TODO: get it to bold the cell in question
   
   #Run the attack
-  red = sorted(diceRoll(armiesMoving)) #An array of randints 1 to 6
-  defenders = b[rA][cA][not sourcePlayer]
-  white = sorted(diceRoll(max(defenders, 2)))
-  while min(len(white),len(red)) > 0:
-    if white[i] >= red[i]: # red loses
-      red.pop(i)
-      stat = input(f"Player {sourcePlayer} loses. There are now {len(red)} attackers and {len(white)} defenders. Keep attacking (Y/N)? ")
-      if stat == "N": break
-    else:
-      white.pop(i)
-      stat = input(f"Player {not sourcePlayer} loses. There are now {len(red)} attackers and {len(white)} defenders. Keep attacking (Y/N)? ")
-      if stat == "N": break
-  if len(white) <= 0:
-    
+  while b[rA][cA][not sourcePlayer] > 0: #Defender still has stuff
+    red = sorted(diceRoll(armiesMoving)) #An array of randints 1 to 6
+    initred = len(red)
+    defenders = b[rA][cA][not sourcePlayer]
+    white = sorted(diceRoll(min(defenders, 2)))
+    initwhite = len(white)
 
-  
+    while min(len(white),len(red)) > 0: 
+      if white[len(white)-1] >= red[len(red)-1]: # red loses
+        red.pop()
+        stat = input(f"Player {sourcePlayer} loses. There are now {len(red)} attackers and {len(white)} defenders. Keep attacking (Y/N)? ")
+        if stat == "N": break
+      else:
+        white.pop()
+        stat = input(f"Player {not sourcePlayer} loses. There are now {len(red)} attackers and {len(white)} defenders. Keep attacking (Y/N)? ")
+        if stat == "N": break
+    if stat == "N": break
+    b[rA][cA][not sourcePlayer] -= initwhite - len(white)
+    b[rA][cA][sourcePlayer] -= initred - len(red)
+  if stat != "N":
+    print(f"Defender lost! Attacker takes over row={rA} col={cA}.")
+    b[rA][cA][not sourcePlayer] = b[rA][cA][sourcePlayer]
+    b[rA][cA][sourcePlayer] = 0
+  else: # Attack manually ended, so we have to move the attacking troops back
+    b[r][c][sourcePlayer] += b[rA][cA][sourcePlayer]
+    b[rA][cA][sourcePlayer] = 0 
+
+def checkGameWon(b) -> int:
+  # if player 1 wins, return 1
+  # if player 0 wins, return 0
+  # if no one wins, return -1
+  foundPlayerOneArmies = False
+  foundPlayerTwoArmies = False
+  for i in range(len(b)):
+    for j in range(len(b[0])):
+      if b[i][j][0] > 0: foundPlayerOneArmies = True
+      if b[i][j][1] > 0: foundPlayerTwoArmies = True
+  if foundPlayerOneArmies and foundPlayerTwoArmies: return -1
+  elif not foundPlayerOneArmies: # Player two wins
+    return 1
+  else:
+    return 0
+
 
 
 Board = initBoard()
@@ -148,7 +184,7 @@ while tmp[0] == tmp[1]:
   tmp = diceRoll(2)
 currPlayer = 0 if tmp[0] > tmp[1] else 1 # False is the first player, True is the second player
 
-tmp = 1
+tmp = 15
 while tmp > 0: # Place all the troops
   placeArmyPrompt(1, currPlayer, Board)
   currPlayer = not currPlayer
@@ -162,10 +198,10 @@ while not gameWin:
   # for every 3 territories you control, you gain one troop
   # TODO: Continent support. Also secret mission support
   placeArmyPrompt(max(countTerritories(currPlayer, Board) // 3, 3), currPlayer, Board)
-  attack(currPlayer, Board)
+  attackNotOver = False
+  while attackNotOver:
+    printBoard(Board)
+    if input("Would you like to attack? (Y/N)\n") == "Y":
+      attack(currPlayer, Board)
+  game = checkGameWon()
   currPlayer = not currPlayer
-
-  
-
-
-
